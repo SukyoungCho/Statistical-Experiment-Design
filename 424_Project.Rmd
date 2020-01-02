@@ -1,0 +1,92 @@
+##DataSet
+```{r}
+iron = c(rep(c(-1,1,-1,-1,1,1,-1,1),3))
+ball = c(rep(c(-1,-1,1,-1,1,-1,1,1),3))
+tee  = c(rep(c(-1,-1,-1,1,-1,1,1,1),3))
+rep  = c(rep(1,8), rep(2,8), rep(3,8))
+dist = c(158.3,183.8,182.5,171.7,189.7,169.3,173.8,172.5,
+         165.7,176.1,192.1,192.6,181.6,164.0,166.3,181.2,
+         178.7,176.2,184.2,180.8,180.7,169.4,159.7,163.7)
+
+# df$iron <- as.factor(df$iron)
+# df$ball <- as.factor(df$ball)
+# df$tee <- as.factor(df$tee)
+
+df = data.frame(cbind(iron,ball,tee,rep,dist))
+#df
+```
+
+##Anova
+```{r}
+aov.golf <- aov(dist~iron*ball*tee, df)
+summary(aov.golf)
+
+# 
+library(DescTools)
+PostHocTest(aov.golf, method="lsd") #When ANOVA shows existence of interaction
+
+#Normality test
+par(mfrow=c(1,1))
+resid <-residuals(aov.golf)
+qqnorm(resid)
+qqline(resid)
+shapiro.test(resid) #p-value = 0.3304, Normally distributed
+```
+
+##Regression model
+```{r}
+lm_golf <- lm(dist~iron*ball*tee, df)
+summary(lm_golf)
+
+confint(lm_golf) #insignificant factors include 0 in their intervals
+```
+
+##Interaction plot - 2 Way
+```{r}
+par(mfrow=c(1,3))
+with(df, interaction.plot(iron,ball,dist))
+with(df, interaction.plot(iron,tee,dist))
+with(df, interaction.plot(ball,tee,dist))
+```
+
+##Interaction plot - 3 Way
+```{r}
+par(mfrow=c(1,2))
+with(df, interaction.plot(ball[iron== 1],tee[iron== 1], dist[iron== 1],  xlab='ball', ylab='dist', trace.label='tee', main='iron is +' ))
+with(df, interaction.plot(ball[iron==-1],tee[iron== -1],dist[iron== -1], xlab='ball', ylab='dist', trace.label='tee', main='iron is -'))
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(df, aes(x = ball, y = dist, fill = tee)) + geom_boxplot() + facet_grid(~tee)
+```
+
+##QQ plot (Normal Probability plot)
+```{r}
+effect <- coef(lm_golf)[-1]*2
+effect
+par(mfrow=c(1,1))
+qq <- qqnorm(effect, xlab="effect", datax=T)
+qqline(effect, probs=c(0.3,0.7), datax=T)
+text(qq$x, qq$y, names(effect), pos=4)
+```
+
+
+```{r}
+library(car)
+residualPlots(lm_golf)
+```
+
+##Lenth plot
+```{r}
+library(BsMD)
+par(mfrow=c(1,1))
+LenthPlot(aov.golf, main = "Lenth Plot of Effects", cex.fac=0.7)
+```
+
+##Final model
+```{r}
+summary(aov(dist~tee * ball + iron:ball:tee, data=df)) #included ball to maintain the hierarchy
+```
+
